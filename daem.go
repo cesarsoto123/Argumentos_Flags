@@ -15,13 +15,10 @@ type Person struct {
 func main() {
 	// Verificar si el archivo existe
 	_, err := os.Stat("config.json")
-	if err == nil || os.IsExist(err) {
-		fmt.Println("El archivo people.json ya existe. No se creará un nuevo archivo.")
-	} else {
+	if err != nil && !os.IsExist(err) {
 		// Crear datos de ejemplo
 		people := []Person{
-
-			{Name: "Cesar", Age: 29},
+			//{Name: "Cesar", Age: 29},
 		}
 
 		// Abrir archivo para escritura
@@ -39,7 +36,7 @@ func main() {
 			panic(err)
 		}
 
-		fmt.Println("El archivo people.json ha sido creado.")
+		fmt.Println("El archivo config.json ha sido creado.")
 	}
 
 	// Leer archivo JSON
@@ -50,28 +47,70 @@ func main() {
 	defer file.Close()
 
 	var people []Person
+
 	err = json.NewDecoder(file).Decode(&people)
 	if err != nil {
 		panic(err)
 	}
 
 	name := flag.String("name", "", "Nombre de la persona")
+	age := flag.Int("age", 0, "Edad de la persona")
+	show := flag.Bool("show", false, "Mostrar el contenido de config.json")
+	flag.Parse()
 
-	if *name != "" {
+	if *show {
+		fmt.Println("el archivo config.jsdon tiene")
+		for _, p := range people {
+			fmt.Printf("Nombre: %s, Edad: %d\n", p.Name, "\n", p.Age)
+		}
+		return
+	}
 
+	if *name != "" && *age != 0 {
+		// Agregar nueva persona a la lista
+		newPerson := Person{Name: *name, Age: *age}
+		people = append(people, newPerson)
+
+		// Actualizar el archivo config.json con la nueva lista de personas
+		file, err := os.Create("config.json")
+		if err != nil {
+			panic(err)
+		}
+		defer file.Close()
+
+		encoder := json.NewEncoder(file)
+		encoder.SetIndent("", "  ")
+		err = encoder.Encode(people)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Printf("Se ha agregado la persona con nombre '%s' y edad '%d' al archivo config.json.\n", *name, *age)
+	} else if *name != "" {
 		for _, p := range people {
 			if p.Name == *name {
-				fmt.Printf("El nombre '%s' fue encontrado en el archivo config.json.\n", *name)
+				fmt.Println("Los nombres de las personas en el archivo config.json son:")
+				for _, p := range people {
+					fmt.Println(p.Name)
+				}
 				return
 			}
 		}
 
 		fmt.Printf("El nombre '%s' no fue encontrado en el archivo config.json.\n", *name)
-	} else {
-
-		fmt.Println("Los nombres de las personas en el archivo people.json son:")
+	} else if *age != 0 {
 		for _, p := range people {
-			fmt.Println(p.Name)
+			if p.Age == *age {
+				fmt.Println("Las edades de las personas en el archivo config.json son:")
+				for _, p := range people {
+					fmt.Println(p.Age)
+				}
+				return
+			}
 		}
+
+		fmt.Printf("La edad '%d' no fue encontrada en el archivo config.json.\n", *age)
+	} else {
+		fmt.Println("Debe de porporcionar un valor para la bandera Name y Age")
 	}
 }
